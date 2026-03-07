@@ -1,8 +1,8 @@
 {
-  "name": "md-ext",
-  "displayName": "Markdown WYSIWYG Editor",
-  "description": "View and edit Markdown files with a TipTap-powered WYSIWYG editor",
-  "version": "0.0.1",
+  "name": "bella-md",
+  "displayName": "BellaMD",
+  "description": "A TipTap-powered WYSIWYG Markdown editor for VSCode",
+  "version": "0.0.2",
   "publisher": "integrum",
   "engines": {
     "vscode": "^1.85.0"
@@ -15,7 +15,7 @@
   "contributes": {
     "customEditors": [
       {
-        "viewType": "mdExt.markdownEditor",
+        "viewType": "bellaMD.markdownEditor",
         "displayName": "Markdown Editor",
         "selector": [
           {
@@ -24,6 +24,24 @@
         ],
         "priority": "default"
       }
+    ],
+    "configurationDefaults": {
+      "workbench.editorAssociations": {
+        "git:/**/*.md": "default",
+        "gitlens:/**/*.md": "default"
+      }
+    },
+    "commands": [
+      { "command": "bellaMD.toggleBold", "title": "Toggle Bold" },
+      { "command": "bellaMD.toggleItalic", "title": "Toggle Italic" },
+      { "command": "bellaMD.toggleUnderline", "title": "Toggle Underline" },
+      { "command": "bellaMD.toggleStrikethrough", "title": "Toggle Strikethrough" }
+    ],
+    "keybindings": [
+      { "command": "bellaMD.toggleBold", "key": "cmd+b", "when": "activeCustomEditorId == 'bellaMD.markdownEditor'" },
+      { "command": "bellaMD.toggleItalic", "key": "cmd+i", "when": "activeCustomEditorId == 'bellaMD.markdownEditor'" },
+      { "command": "bellaMD.toggleUnderline", "key": "cmd+u", "when": "activeCustomEditorId == 'bellaMD.markdownEditor'" },
+      { "command": "bellaMD.toggleStrikethrough", "key": "cmd+shift+s", "when": "activeCustomEditorId == 'bellaMD.markdownEditor'" }
     ]
   },
   "scripts": {

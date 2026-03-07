@@ -8,6 +8,10 @@ This is a **test file** to try out the *TipTap-powered* WYSIWYG editor.
 - ~~Strikethrough~~ support
 - [Links](https://example.com) work too
 
+```
+sdwdqw
+```
+
 ### Lists
 
 1. First ordered item
@@ -25,7 +29,7 @@ This is a **test file** to try out the *TipTap-powered* WYSIWYG editor.
 
 - [ ] Toggle a checkbox
 
-- [x] Install the extension
+- [ ] Install the extension
 
 ### Code
 
