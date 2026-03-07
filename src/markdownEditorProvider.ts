@@ -8,6 +8,9 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
   /** Hash of the last content received from the webview, used for echo prevention. */
   private lastWebviewContentHash = '';
 
+  /** The currently active webview panel, used by keybinding commands. */
+  private activeWebviewPanel: vscode.WebviewPanel | undefined;
+
   constructor(private readonly context: vscode.ExtensionContext) {
     this.extensionUri = context.extensionUri;
   }
@@ -18,6 +21,17 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new MarkdownEditorProvider(context);
+
+    // Register keybinding commands once (not per-editor) to avoid duplicate registration errors
+    const commands = ['toggleBold', 'toggleItalic', 'toggleUnderline', 'toggleStrikethrough'];
+    for (const cmd of commands) {
+      context.subscriptions.push(
+        vscode.commands.registerCommand(`bellaMD.${cmd}`, () => {
+          provider.activeWebviewPanel?.webview.postMessage({ type: 'command', command: cmd });
+        }),
+      );
+    }
+
     return vscode.window.registerCustomEditorProvider(
       MarkdownEditorProvider.viewType,
       provider,
@@ -50,6 +64,9 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
         return;
       }
     }
+
+    // Track the active panel for keybinding commands
+    this.activeWebviewPanel = webviewPanel;
 
     // Store frontmatter separately — it's stripped from the editor and re-prepended on save
     let storedFrontmatter = '';
@@ -154,20 +171,14 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       // No-op for now – placeholder for future save-time behaviour.
     });
 
-    // --- Keybinding commands ------------------------------------------------
-    const commands = ['toggleBold', 'toggleItalic', 'toggleUnderline', 'toggleStrikethrough'];
-    const commandDisposables = commands.map((cmd) =>
-      vscode.commands.registerCommand(`bellaMD.${cmd}`, () => {
-        webviewPanel.webview.postMessage({ type: 'command', command: cmd });
-      }),
-    );
-
     // --- Cleanup ----------------------------------------------------------
     webviewPanel.onDidDispose(() => {
       messageSubscription.dispose();
       documentChangeSubscription.dispose();
       saveSubscription.dispose();
-      commandDisposables.forEach((d) => d.dispose());
+      if (this.activeWebviewPanel === webviewPanel) {
+        this.activeWebviewPanel = undefined;
+      }
     });
   }
 
