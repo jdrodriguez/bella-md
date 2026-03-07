@@ -1,0 +1,1 @@
+This is the beginning of an vs code extension i want to build allow viewing and editing md files in a tiptap powered viewer, so instead of dealing with raw md formatting, i can view and edit md files in a pretty window... whne the extension is installed all md open by default on it, not on the raw text editor vs code has. 
