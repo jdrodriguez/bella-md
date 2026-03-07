@@ -81,13 +81,33 @@ html, body {
   scroll-behavior: smooth;
 }
 
+/* ---- Line gutter ------------------------------------------------- */
+.line-gutter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+.line-number {
+  position: absolute;
+  width: 36px;
+  text-align: right;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--vscode-editorLineNumber-foreground, #858585);
+}
+
 /* ---- ProseMirror (TipTap content area) --------------------------- */
 .ProseMirror {
-  --editor-gutter-width: 72px;
-  --editor-badge-offset: 38px;
   max-width: 800px;
   margin: 0 auto;
-  padding: 40px 48px 120px 96px;
+  padding: 40px 48px 120px 56px;
   outline: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -95,27 +115,10 @@ html, body {
   line-height: 1.7;
   color: var(--vscode-editor-foreground, #1e1e1e);
   caret-color: var(--vscode-editorCursor-foreground, #000000);
-  counter-reset: editor-line;
 }
 
-/* ---- Line numbers ------------------------------------------------ */
 .ProseMirror > :not(.ProseMirror-gapcursor) {
   position: relative;
-  counter-increment: editor-line;
-}
-.ProseMirror > :not(.ProseMirror-gapcursor)::before {
-  content: counter(editor-line);
-  position: absolute;
-  left: calc(-1 * var(--editor-gutter-width));
-  width: 32px;
-  top: 0;
-  text-align: right;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-  font-size: 12px;
-  line-height: inherit;
-  color: var(--vscode-editorLineNumber-foreground, #858585);
-  pointer-events: none;
-  user-select: none;
 }
 
 /* Placeholder */
@@ -320,6 +323,66 @@ html, body {
 .ProseMirror th {
   font-weight: 600;
   background: var(--vscode-textCodeBlock-background, #f6f8fa);
+}
+
+/* ---- Table inline controls --------------------------------------- */
+.table-add-row,
+.table-add-col {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vscode-button-secondaryBackground, #e8e8e8);
+  color: var(--vscode-button-secondaryForeground, #555);
+  border: 1px solid var(--vscode-panel-border, #dfe2e5);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  z-index: 2;
+}
+
+/* Show on table wrapper hover */
+.tableWrapper:hover > .table-add-row,
+.tableWrapper:hover > .table-add-col,
+.table-add-row:hover,
+.table-add-col:hover {
+  opacity: 1;
+}
+
+.table-add-row {
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 20px;
+  font-size: 14px;
+}
+
+.table-add-col {
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 48px;
+  font-size: 14px;
+}
+
+.table-add-row:hover,
+.table-add-col:hover {
+  background: var(--vscode-button-hoverBackground, #0066b8);
+  color: var(--vscode-button-foreground, #fff);
+  border-color: var(--vscode-button-hoverBackground, #0066b8);
+}
+
+/* Ensure table wrapper has room for buttons */
+.ProseMirror .tableWrapper {
+  position: relative;
+  margin-bottom: 20px;
+  padding-right: 20px;
 }
 
 /* ---- Images ------------------------------------------------------ */
@@ -880,26 +943,6 @@ html, body {
   background: var(--vscode-editor-lineHighlightBackground, rgba(255, 255, 255, 0.04));
 }
 
-/* ---- Heading level badges ------------------------------------------ */
-.heading-badge {
-  position: absolute;
-  left: calc(-1 * var(--editor-badge-offset));
-  top: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 20px;
-  padding: 0 4px;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--vscode-editorLineNumber-foreground, #858585);
-  background: var(--vscode-textCodeBlock-background, rgba(27, 31, 35, 0.05));
-  border-radius: 3px;
-  pointer-events: none;
-  user-select: none;
-}
 
 /* ---- Search bar ---------------------------------------------------- */
 .search-bar {

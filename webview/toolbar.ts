@@ -160,6 +160,16 @@ export function buildToolbarConfig(): ToolbarGroup[] {
     {
       buttons: [
         {
+          label: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="14" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="1" y1="5.5" x2="15" y2="5.5" stroke="currentColor" stroke-width="1"/><line x1="1" y1="10.5" x2="15" y2="10.5" stroke="currentColor" stroke-width="1"/><line x1="5.5" y1="1" x2="5.5" y2="15" stroke="currentColor" stroke-width="1"/><line x1="10.5" y1="1" x2="10.5" y2="15" stroke="currentColor" stroke-width="1"/></svg>',
+          title: 'Insert Table',
+          action: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+          isActive: (e) => e.isActive('table'),
+        },
+      ],
+    },
+    {
+      buttons: [
+        {
           label: '\uD83D\uDD17',
           title: 'Insert Link',
           action: (e) => {

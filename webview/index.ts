@@ -36,7 +36,7 @@ import { createToolbar } from './toolbar';
 import { createBubbleMenuElement, setupBubbleMenuActions } from './bubble-menu';
 import { createFloatingMenuElement, populateFloatingMenu } from './floating-menu';
 import { createStatusBar } from './status-bar';
-import { setupTableContextMenu } from './table-menu';
+import { setupTableContextMenu, setupTableControls } from './table-menu';
 import { debounce } from './utils';
 import { createSearchBar, setupSearchKeybinding, createSearchExtension } from './search';
 import { GitHubAlerts } from './extensions/alert';
@@ -74,6 +74,12 @@ function main(): void {
 
   const contentHost = document.createElement('div');
   contentHost.id = 'editor-content';
+  contentHost.style.position = 'relative';
+
+  const gutterEl = document.createElement('div');
+  gutterEl.className = 'line-gutter';
+
+  contentHost.appendChild(gutterEl);
   scrollContainer.appendChild(contentHost);
 
   editorMount.appendChild(toolbar);
@@ -113,36 +119,6 @@ function main(): void {
     },
   });
 
-  const HeadingBadges = Extension.create({
-    name: 'headingBadges',
-    addProseMirrorPlugins() {
-      return [
-        new Plugin({
-          key: new PluginKey('headingBadges'),
-          props: {
-            decorations(state) {
-              const decorations: Decoration[] = [];
-              state.doc.descendants((node, pos) => {
-                if (node.type.name === 'heading') {
-                  const level = node.attrs.level as number;
-                  const widget = Decoration.widget(pos + 1, () => {
-                    const badge = document.createElement('span');
-                    badge.className = 'heading-badge';
-                    badge.textContent = `H${level}`;
-                    return badge;
-                  }, { side: -1 });
-                  decorations.push(widget);
-                  return false;
-                }
-                return true;
-              });
-              return DecorationSet.create(state.doc, decorations);
-            },
-          },
-        }),
-      ];
-    },
-  });
 
   let debouncedSendUpdate: () => void;
 
@@ -197,7 +173,6 @@ function main(): void {
         },
       }),
       ActiveLineHighlight,
-      HeadingBadges,
       GitHubAlerts,
       CodeBlockLanguageSelector,
       createSearchExtension(),
@@ -292,9 +267,91 @@ function main(): void {
   setupBubbleMenuActions(bubbleMenuEl, editor);
   populateFloatingMenu(floatingMenuEl, editor);
   setupTableContextMenu(editor);
+  setupTableControls(editor);
 
   const statusBar = createStatusBar(editor);
   editorMount.appendChild(statusBar);
+
+  // --- Line numbers gutter -------------------------------------------
+  const lineInfoEl = document.createElement('span');
+  lineInfoEl.textContent = 'Ln 1';
+  statusBar.appendChild(lineInfoEl);
+
+  function updateLineNumbers(): void {
+    const proseMirrorEl = contentHost.querySelector('.ProseMirror') as HTMLElement | null;
+    if (!proseMirrorEl) return;
+
+    // Get the full markdown and split into lines
+    const md = (editor.storage.markdown as { getMarkdown: () => string }).getMarkdown();
+    const lines = md.split('\n');
+
+    // Build a map: for each block, find its starting source line.
+    // Markdown blocks are separated by blank lines. Walk the lines and
+    // record the start of each non-blank run (= one block).
+    const blockLineStarts: number[] = [];
+    let inBlock = false;
+    for (let i = 0; i < lines.length; i++) {
+      const blank = lines[i].trim() === '';
+      if (!blank && !inBlock) {
+        blockLineStarts.push(i + 1); // 1-based
+        inBlock = true;
+      } else if (blank) {
+        inBlock = false;
+      }
+    }
+
+    // Collect top-level DOM nodes
+    const topNodes: HTMLElement[] = [];
+    for (const child of Array.from(proseMirrorEl.children)) {
+      if (child instanceof HTMLElement && !child.classList.contains('ProseMirror-gapcursor')) {
+        topNodes.push(child);
+      }
+    }
+
+    // Build gutter content
+    gutterEl.innerHTML = '';
+    const contentHostRect = contentHost.getBoundingClientRect();
+    const proseMirrorRect = proseMirrorEl.getBoundingClientRect();
+    // Position line numbers at the left edge of ProseMirror's padding
+    const gutterLeft = proseMirrorRect.left - contentHostRect.left + 8;
+
+    for (let i = 0; i < topNodes.length; i++) {
+      const domNode = topNodes[i];
+      const lineNum = i < blockLineStarts.length ? blockLineStarts[i] : '';
+      const nodeRect = domNode.getBoundingClientRect();
+      const topOffset = nodeRect.top - contentHostRect.top;
+
+      const lineEl = document.createElement('div');
+      lineEl.className = 'line-number';
+      lineEl.textContent = String(lineNum);
+      lineEl.style.top = `${topOffset}px`;
+      lineEl.style.left = `${gutterLeft}px`;
+      gutterEl.appendChild(lineEl);
+    }
+
+    // Update status bar with current cursor line
+    const { $head } = editor.state.selection;
+    if ($head.depth > 0) {
+      const topNodePos = $head.start(1) - 1;
+      const doc = editor.state.doc;
+      let topIndex = 0;
+      let pos = 0;
+      for (let i = 0; i < doc.childCount; i++) {
+        if (pos === topNodePos) {
+          topIndex = i;
+          break;
+        }
+        pos += doc.child(i).nodeSize;
+      }
+      if (topIndex < blockLineStarts.length) {
+        lineInfoEl.textContent = `Ln ${blockLineStarts[topIndex]}`;
+      }
+    }
+  }
+
+  editor.on('update', updateLineNumbers);
+  editor.on('selectionUpdate', updateLineNumbers);
+  requestAnimationFrame(updateLineNumbers);
 
   const searchBar = createSearchBar(editor);
   document.body.appendChild(searchBar);
@@ -320,6 +377,7 @@ function main(): void {
         if (typeof msg.content === 'string') {
           lastExtensionContentHash = hashContent(msg.content);
           editor.commands.setContent(msg.content);
+          requestAnimationFrame(updateLineNumbers);
         }
         break;
       }

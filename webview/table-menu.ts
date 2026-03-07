@@ -1,5 +1,68 @@
 import { Editor } from '@tiptap/core';
 
+/* ------------------------------------------------------------------ */
+/*  Inline table controls (+ buttons to add rows / columns)           */
+/* ------------------------------------------------------------------ */
+
+function attachTableControls(editor: Editor): void {
+  const proseMirror = editor.view.dom as HTMLElement;
+
+  // Clean up old controls
+  proseMirror.querySelectorAll('.table-add-row, .table-add-col').forEach(el => el.remove());
+
+  const wrappers = proseMirror.querySelectorAll('.tableWrapper');
+  wrappers.forEach((wrapper) => {
+    const table = wrapper.querySelector('table');
+    if (!table) return;
+
+    // "+ Row" button at the bottom center
+    const addRowBtn = document.createElement('button');
+    addRowBtn.className = 'table-add-row';
+    addRowBtn.textContent = '+';
+    addRowBtn.title = 'Add row';
+    addRowBtn.contentEditable = 'false';
+    addRowBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const lastCell = table.querySelector('tr:last-child td:first-child, tr:last-child th:first-child');
+      if (lastCell) {
+        const pos = editor.view.posAtDOM(lastCell, 0);
+        editor.chain().focus(pos).addRowAfter().run();
+      }
+    });
+    wrapper.appendChild(addRowBtn);
+
+    // "+ Column" button at the right side
+    const addColBtn = document.createElement('button');
+    addColBtn.className = 'table-add-col';
+    addColBtn.textContent = '+';
+    addColBtn.title = 'Add column';
+    addColBtn.contentEditable = 'false';
+    addColBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const lastHeaderCell = table.querySelector('tr:first-child th:last-child, tr:first-child td:last-child');
+      if (lastHeaderCell) {
+        const pos = editor.view.posAtDOM(lastHeaderCell, 0);
+        editor.chain().focus(pos).addColumnAfter().run();
+      }
+    });
+    wrapper.appendChild(addColBtn);
+  });
+}
+
+export function setupTableControls(editor: Editor): void {
+  // Attach controls after every update and on initial render
+  editor.on('update', () => requestAnimationFrame(() => attachTableControls(editor)));
+  editor.on('create', () => requestAnimationFrame(() => attachTableControls(editor)));
+  // Also re-attach after content is set (e.g. init message)
+  setTimeout(() => attachTableControls(editor), 300);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Table context menu (right-click)                                   */
+/* ------------------------------------------------------------------ */
+
 export function setupTableContextMenu(editor: Editor): void {
   const menu = document.createElement('div');
   menu.className = 'table-context-menu';
