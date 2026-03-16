@@ -5,8 +5,8 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
 
   private readonly extensionUri: vscode.Uri;
 
-  /** Hash of the last content received from the webview, used for echo prevention. */
-  private lastWebviewContentHash = '';
+  /** Per-document hash of the last content received from the webview, used for echo prevention. */
+  private lastWebviewContentHash = new Map<string, string>();
 
   /** The currently active webview panel, used by keybinding commands. */
   private activeWebviewPanel: vscode.WebviewPanel | undefined;
@@ -65,8 +65,15 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       }
     }
 
-    // Track the active panel for keybinding commands
+    const docKey = document.uri.toString();
+
+    // Track the active panel for keybinding commands (update on focus, not just open)
     this.activeWebviewPanel = webviewPanel;
+    webviewPanel.onDidChangeViewState(() => {
+      if (webviewPanel.active) {
+        this.activeWebviewPanel = webviewPanel;
+      }
+    });
 
     // Store frontmatter separately — it's stripped from the editor and re-prepended on save
     let storedFrontmatter = '';
@@ -135,7 +142,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           document.positionAt(currentText.length),
         );
 
-        this.lastWebviewContentHash = this.hashContent(fullContent);
+        this.lastWebviewContentHash.set(docKey, this.hashContent(fullContent));
 
         const edit = new vscode.WorkspaceEdit();
         edit.replace(document.uri, fullRange, fullContent);
@@ -150,9 +157,10 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
           return;
         }
         // Echo prevention: if this change matches what the webview just sent, skip
+        const changedDocKey = e.document.uri.toString();
         const contentHash = this.hashContent(document.getText());
-        if (contentHash === this.lastWebviewContentHash) {
-          this.lastWebviewContentHash = '';
+        if (contentHash === this.lastWebviewContentHash.get(changedDocKey)) {
+          this.lastWebviewContentHash.delete(changedDocKey);
           return;
         }
         const { frontmatter, body } = this.extractFrontmatter(document.getText());
@@ -176,6 +184,7 @@ export class MarkdownEditorProvider implements vscode.CustomTextEditorProvider {
       messageSubscription.dispose();
       documentChangeSubscription.dispose();
       saveSubscription.dispose();
+      this.lastWebviewContentHash.delete(docKey);
       if (this.activeWebviewPanel === webviewPanel) {
         this.activeWebviewPanel = undefined;
       }
